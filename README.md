@@ -37,4 +37,11 @@
 
 - [Micronaut HTTP Client documentation](https://docs.micronaut.io/latest/guide/index.html#nettyHttpClient)
 
+# Starling Technical Challenge
+- Java embedded REST Api
+- Using Micronaut CLI to create project
+```
+mn create-app kiran.interview.starling --build=gradle --lang=java --test=junit --features=http-client,graalvm,openapi,swagger-ui --jdk=21
+```
+
 
