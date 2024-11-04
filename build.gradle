@@ -5,7 +5,7 @@ plugins {
     id("com.google.cloud.tools.jib") version "3.4.4"
 }
 
-version = "0.1"
+version = "1.0"
 group = "kiran.interview"
 
 repositories {
@@ -16,10 +16,20 @@ dependencies {
     annotationProcessor("io.micronaut:micronaut-http-validation")
     annotationProcessor("io.micronaut.openapi:micronaut-openapi")
     annotationProcessor("io.micronaut.serde:micronaut-serde-processor")
+    annotationProcessor("io.micronaut.validation:micronaut-validation-processor")
     implementation("io.micronaut:micronaut-http-client")
     implementation("io.micronaut.serde:micronaut-serde-jackson")
+    implementation("io.micronaut.validation:micronaut-validation")
     compileOnly("io.micronaut.openapi:micronaut-openapi-annotations")
     runtimeOnly("ch.qos.logback:logback-classic")
+
+    testAnnotationProcessor("io.micronaut:micronaut-inject-java")
+    testImplementation("org.junit.jupiter:junit-jupiter-api")
+    testImplementation("io.micronaut.test:micronaut-test-junit5:2.3.5")
+    testImplementation("org.mockito:mockito-core:3.+")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.11.3")
+    testImplementation("io.micronaut.test:micronaut-test-rest-assured")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.1")
 }
 
 
@@ -31,6 +41,9 @@ java {
     targetCompatibility = JavaVersion.toVersion("21")
 }
 
+test {
+    useJUnitPlatform()
+}
 
 graalvmNative.toolchainDetection = false
 
