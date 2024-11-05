@@ -44,7 +44,7 @@ public class StarlingService {
         int totalAmountToSave = 0;
         for (FeedItem item: outgoingFeedItems) {
             int minorUnits = item.amount().minorUnits();
-            if (minorUnits % 100 != 0) {
+            if (minorUnits % 100 != 0) { // Don't save if on an exact pound
                 totalAmountToSave += (100 - (minorUnits % 100));
             }
         }
