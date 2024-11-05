@@ -4,8 +4,10 @@ import io.micronaut.http.HttpRequest;
 import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
+import io.micronaut.security.annotation.Secured;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 import kiran.interview.annotations.validation.timestamp.uuid.UuidFormat;
@@ -26,6 +28,7 @@ public class StarlingController {
     }
 
     @Put("/account/{accountUid}/savings-goals/{savingsGoalUid}/add-money/round-up")
+    @SecurityRequirement(name = "bearerAuth")
     @Operation(
             summary = "Save rounded up outgoings",
             description = "Gets all outgoings for a given week, " +
@@ -51,6 +54,7 @@ public class StarlingController {
     }
 
     @Get("/feed/account/{accountUid}/outgoing/week")
+    @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Outgoings for a given week", description = "Get every outgoing transaction for a given week")
     @ApiResponse(responseCode = "200", description = "Successful operation")
     @ApiResponse(responseCode = "400", description = "Account UID not found or invalid parameter")
