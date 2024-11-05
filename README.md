@@ -35,11 +35,18 @@ Running the app can be done by either building it from source or by creating a d
 - The logs should state where to access the server
 - By default, this should be http://localhost:8080
 
-2. To build a docker image locally
+2. To build a docker image locally using gradle
 - Clone the project
 - cd into `/starling`
 - run `/gradlew jibDockerBuild` (may need `sudo` from this point forward)
 - (optional) run `docker image ls` to view the image
+- run `docker run -p 8080:8080 starling:1.0`
+- Access at http://localhost:8080
+
+3. To build a docker image using the Dockerfile
+- Clone the project
+- cd into `/starling`
+- run `docker build -t starling:1.0 .`
 - run `docker run -p 8080:8080 starling:1.0`
 - Access at http://localhost:8080
 
