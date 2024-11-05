@@ -7,6 +7,6 @@ import java.util.List;
 @Serdeable
 public record AmountToSaveAndTransactions(
         int totalAmountToSave,
-        List<OutgoingTransaction> outgoingTransactions
+        List<FeedItem> outgoingTransactions
 ) {
 }

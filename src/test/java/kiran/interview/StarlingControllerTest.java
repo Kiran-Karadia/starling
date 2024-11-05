@@ -42,17 +42,17 @@ class StarlingControllerTest {
 
     @Test
     void testGetOutgoingsForSomeWeek() {
-        when(starlingClient.getTransactionsBetween(anyString(), anyString(), anyString()))
-            .thenReturn(MockData.mockTransactionsBetweenResponse());
+        when(starlingClient.getTransactionsBetween(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(MockData.mockTransactionsBetweenResponse());
 
         HttpResponse<AmountToSaveAndTransactions> response = client.toBlocking().exchange(
-            HttpRequest.GET(
-                    generateGetTransactionsFromWeekPath(
-                "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
-                "2024-01-01T00:00:00Z"
-                )
-            ),
-            AmountToSaveAndTransactions.class
+                HttpRequest.GET(
+                                generateGetTransactionsFromWeekPath(
+                                        "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+                                        "2024-01-01T00:00:00Z"
+                                )
+                        ).header("Authorization", "Bearer access_token"),
+                AmountToSaveAndTransactions.class
         );
 
         assertEquals(HttpStatus.OK, response.getStatus());
@@ -60,7 +60,7 @@ class StarlingControllerTest {
 
     @Test
     void testGetOutgoingsForSomeWeekBadUuid() {
-        when(starlingClient.getTransactionsBetween(anyString(), anyString(), anyString()))
+        when(starlingClient.getTransactionsBetween(anyString(), anyString(), anyString(), anyString()))
             .thenReturn(MockData.mockTransactionsBetweenResponse());
 
         HttpClientResponseException exception = assertThrows(
@@ -71,7 +71,7 @@ class StarlingControllerTest {
                         "badUuid",
                         "2024-01-01T00:00:00Z"
                     )
-                ),
+                ).header("Authorization", "Bearer access_token"),
                 AmountToSaveAndTransactions.class
             )
         );
@@ -80,7 +80,7 @@ class StarlingControllerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         assertEquals(
-                "must match \"[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\"",
+                "Parameter error: must match \"[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\"",
                 exceptionErrorMessage
         );
     }
@@ -88,7 +88,7 @@ class StarlingControllerTest {
     @Test
     void testGetOutgoingsForSomeWeekBadTimestamp() {
 
-        when(starlingClient.getTransactionsBetween(anyString(), anyString(), anyString()))
+        when(starlingClient.getTransactionsBetween(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(MockData.mockTransactionsBetweenResponse());
 
         HttpClientResponseException exception = assertThrows(
@@ -99,7 +99,7 @@ class StarlingControllerTest {
                         "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
                         "2024/01-01T00:00:00Z"
                     )
-                ),
+                ).header("Authorization", "Bearer access_token"),
                 AmountToSaveAndTransactions.class
             )
         );
@@ -108,18 +108,19 @@ class StarlingControllerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         assertEquals(
-                "Timestamp value must fit ISO 8601 standard",
+                "Parameter error: Timestamp value must fit ISO 8601 standard",
                 exceptionErrorMessage
         );
     }
 
     @Test
     void testAddRoundedUpWeekOutgoingToSavingsGoal() {
-        when(starlingClient.getTransactionsBetween(anyString(), anyString(), anyString()))
+        when(starlingClient.getTransactionsBetween(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(MockData.mockTransactionsBetweenResponse());
 
         when(
             starlingClient.addMoneyToSavingsGoal(
+                    anyString(),
                 anyString(),
                 anyString(),
                 anyString(),
@@ -137,11 +138,10 @@ class StarlingControllerTest {
                             "2024-01-01T00:00:00Z"
                     ),
                     null
-                ),
+                ).header("Authorization", "Bearer access_token"),
                     AddRoundedUpWeekOutgoingToSavingsGoal.class
             );
 
         assertEquals(HttpStatus.OK, response.getStatus());
     }
-
 }

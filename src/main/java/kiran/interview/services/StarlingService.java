@@ -1,5 +1,7 @@
 package kiran.interview.services;
 
+import io.micronaut.http.HttpHeaders;
+import io.micronaut.http.HttpRequest;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import kiran.interview.httpclients.StarlingClient;
@@ -7,10 +9,7 @@ import kiran.interview.models.*;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Singleton
 public class StarlingService {
@@ -22,94 +21,68 @@ public class StarlingService {
         this.starlingClient = starlingClient;
     }
 
-    public AmountToSaveAndTransactions getTransactionsFromWeek(String accountUid, String startTimestamp) {
-        String endTimestamp = addWeekToTimestamp(startTimestamp);
+    public AmountToSaveAndTransactions getAmountToSaveAndTransactions(HttpRequest<?> request, String accountUid, String weekStartTimestamp) {
+        // Format and add 1 week (7 days) to the given timestamp
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
 
-        List<FeedItem> outgoingFeedItems = getOutgoingTransactionsBetween(
-                accountUid,
-                startTimestamp,
-                endTimestamp
-        );
+        String endTimestamp = ZonedDateTime.parse(weekStartTimestamp, formatter)
+                .plusWeeks(1)
+                .format(formatter);
 
-        List<OutgoingTransaction> outgoingTransactions = new ArrayList<>();
+        String access_token = extractAccessToken(request);
 
-        int totalAmountToSave = calculateSavingsFromWeek(accountUid, startTimestamp);
+        // Get all outgoing transactions within the given week, that are not part of the SAVING category
+        var outgoingFeedItems = starlingClient.getTransactionsBetween(access_token, accountUid, weekStartTimestamp, endTimestamp)
+                .feedItems().stream()
+                .filter(feedItem -> feedItem.direction().equals("OUT"))
+                .filter(feedItem -> !feedItem.spendingCategory().equals("SAVING"))
+                .toList();
 
-        for (FeedItem item : outgoingFeedItems) {
-            outgoingTransactions.add(
-                    new OutgoingTransaction(
-                            item.reference(),
-                            item.amount(),
-                            item.transactionTime()
-                    )
-            );
+        // Accumulate amount to save for each item:
+        // Round minorUnits to the nearest round
+        // Minus the original minorUnits
+        int totalAmountToSave = 0;
+        for (FeedItem item: outgoingFeedItems) {
+            int minorUnits = item.amount().minorUnits();
+            if (minorUnits % 100 != 0) {
+                totalAmountToSave += (100 - (minorUnits % 100));
+            }
         }
 
         return new AmountToSaveAndTransactions(
                 totalAmountToSave,
-                outgoingTransactions
+                outgoingFeedItems
         );
     }
 
     public AddRoundedUpWeekOutgoingToSavingsGoal addRoundedUpWeekOutgoingToSavingsGoal(
             String accountUid,
             String savingsGoalUid,
-            String weekStartTimestamp
+            String weekStartTimestamp,
+            HttpRequest<?> request
     ) {
-        int minorUnitsToSave = calculateSavingsFromWeek(accountUid, weekStartTimestamp);
-        CurrencyAndAmount totalAmountToSave = new CurrencyAndAmount("GBP", minorUnitsToSave);
+        String access_token = extractAccessToken(request);
+        AmountToSaveAndTransactions amountToSaveAndTransactions = getAmountToSaveAndTransactions(request, accountUid, weekStartTimestamp);
+
+        int totalAmountToSave = amountToSaveAndTransactions.totalAmountToSave();
+        CurrencyAndAmount savingsCurrencyAndAmount = new CurrencyAndAmount("GBP", totalAmountToSave);
+
+        // Needed for call to starling API
+        Amount savingsAmount = new Amount(savingsCurrencyAndAmount);
 
         return new AddRoundedUpWeekOutgoingToSavingsGoal(
                 starlingClient.addMoneyToSavingsGoal(
+                        access_token,
                         accountUid,
                         savingsGoalUid,
                         UUID.randomUUID().toString(),
-                        new Amount(totalAmountToSave)
+                        savingsAmount
                 ),
-                totalAmountToSave
+                savingsCurrencyAndAmount
         );
     }
 
-    private int calculateAmountToSave(int minorUnits) {
-        if (minorUnits % 100 == 0) {
-            return 0;
-        }
-        return 100 - (minorUnits % 100);
-    }
-
-    private String addWeekToTimestamp(String timestamp) {
-        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
-
-        return ZonedDateTime.parse(timestamp, formatter)
-                .plusWeeks(1)
-                .format(formatter);
-    }
-
-    private int calculateSavingsFromWeek(String accountUid, String startTimestamp) { // CHANGE THIS NAME, DOESN@T MAKE SENSE
-        String endTimestamp = addWeekToTimestamp(startTimestamp);
-
-        List<FeedItem> outgoingFeedItems = getOutgoingTransactionsBetween(
-                accountUid,
-                startTimestamp,
-                endTimestamp
-        );
-        int amountToSave = 0;
-        for (FeedItem item : outgoingFeedItems) {
-            amountToSave += calculateAmountToSave(item.amount().minorUnits());
-        }
-        return amountToSave;
-    }
-
-    private List<FeedItem> getOutgoingTransactionsBetween(
-            String accountUid,
-            String startTimestamp,
-            String endTimestamp
-    ) {
-        return starlingClient.getTransactionsBetween(
-                accountUid, startTimestamp, endTimestamp)
-                .feedItems().stream()
-                .filter(feedItem -> feedItem.direction().equals("OUT"))
-                .filter(feedItem -> !feedItem.spendingCategory().equals("SAVING"))
-                .collect(Collectors.toList());
+    private String extractAccessToken(HttpRequest<?> request) {
+        return request.getHeaders().get(HttpHeaders.AUTHORIZATION);
     }
 }
