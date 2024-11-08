@@ -11,6 +11,8 @@ This is just for convenience as I thought it would be nice to be able to what tr
 
 The second will perform the transfer of money to the provided savings account.
 
+*Both endpoints require authorisation. Authenticate with the `Authorization` header set to `Bearer $access_token`. The `access_token` is the same token aquired via the Starling API*
+
 # Assumptions
 - No complex auth required as stated in the challenge
 - User has a Starling account (or access to a sandbox customer)
